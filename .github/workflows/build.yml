@@ -1,4 +1,4 @@
-name: Compilar APK (Fbook)
+name: Compilar APK (FPremium)
 
 # Compila en cada cambio a main, o a mano desde Actions > Run workflow.
 # Los scripts de app/src/main/res/raw/ la app los baja sola de este repo al abrir,
@@ -77,6 +77,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Fbook ${{ env.VERSION }}
+          name: FPremium ${{ env.VERSION }}
           body: "APK compilado automáticamente."
           files: salida/*.apk
