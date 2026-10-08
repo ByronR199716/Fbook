@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.EmojiPeople
 import androidx.compose.material.icons.filled.Padding
 import androidx.compose.material.icons.filled.Try
 import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.DesktopWindows
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.GridView
@@ -49,30 +48,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ycngmn.nobook.NobookViewModel
 import com.ycngmn.nobook.R
 import com.ycngmn.nobook.ui.theme.FacebookBlue
-import com.ycngmn.nobook.ui.viewmodel.SettingsViewModel
-import com.ycngmn.nobook.utils.rememberAutoDesktop
+import com.ycngmn.nobook.utils.isAutoDesktop
 
 @Composable
 fun SettingsContent(
     modifier: Modifier,
-    viewModel: SettingsViewModel = viewModel()
+    viewModel: NobookViewModel
 ) {
     val context = LocalContext.current
     var isOpenDialog by rememberSaveable { mutableStateOf(false) }
 
     val removeAds = viewModel.removeAds.collectAsState()
     val enableDownloadContent = viewModel.enableDownloadContent.collectAsState()
-    val enableCopyToClipboard = viewModel.enableCopyToClipboard.collectAsState()
     val desktopLayout = viewModel.desktopLayout.collectAsState()
     val immersiveMode = viewModel.immersiveMode.collectAsState()
     val stickyNavbar = viewModel.stickyNavbar.collectAsState()
     val pinchToZoom = viewModel.pinchToZoom.collectAsState()
     val amoledBlack = viewModel.amoledBlack.collectAsState()
 
-    val isAutoDesktop = rememberAutoDesktop()
+    val isAutoDesktop = isAutoDesktop()
 
     Column(
         modifier = modifier,
@@ -93,13 +90,6 @@ fun SettingsContent(
                     supportingText = stringResource(R.string.enable_download_button_on_media_view),
                     isActive = enableDownloadContent.value,
                     onClick = { viewModel.setEnableDownloadContent(!enableDownloadContent.value) },
-                ),
-                SettingsItem(
-                    icon = Icons.Outlined.ContentCopy,
-                    title = stringResource(R.string.copy_to_clipboard_title),
-                    supportingText = stringResource(R.string.enable_copy_to_clipboard_button_on_media_view),
-                    isActive = enableCopyToClipboard.value,
-                    onClick = { viewModel.setEnableCopyToClipboard(!enableCopyToClipboard.value) },
                 ),
                 SettingsItem(
                     icon = Icons.Outlined.GridView,
@@ -183,7 +173,7 @@ fun SettingsContent(
 
 @Composable
 private fun HideOptionsDialog(
-    viewModel: SettingsViewModel,
+    viewModel: NobookViewModel,
     onDismiss: () -> Unit
 ) {
 
