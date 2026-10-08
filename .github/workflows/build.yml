@@ -1,0 +1,82 @@
+name: Compilar APK (Fbook)
+
+# Compila en cada cambio a main, o a mano desde Actions > Run workflow.
+# Los scripts de app/src/main/res/raw/ la app los baja sola de este repo al abrir,
+# así que cambiarlos no necesita compilar de nuevo.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'main' ]
+    paths-ignore:
+      - '**.md'
+      - 'app/src/main/res/raw/**'
+      - 'images/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compilar, firmar y publicar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Revisar secretos de firma
+        env:
+          BASE_64_SIGNING_KEY: ${{ secrets.BASE_64_SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for v in BASE_64_SIGNING_KEY KEY_STORE_PASSWORD ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::Falta el secreto $v (Settings > Secrets and variables > Actions)"; exit 1; fi
+          done
+          echo "$BASE_64_SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/firma.jks"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Versión de esta compilación
+        run: |
+          N=${{ github.run_number }}
+          sed -i "s/versionCode = .*/versionCode = $((100 + N))/; s/versionName = .*/versionName = \"1.0.$N\"/" app/build.gradle.kts
+          echo "VERSION=1.0.$N" >> "$GITHUB_ENV"
+
+      - name: Compilar APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Firmar APK
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          mkdir -p salida
+          "$BT/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk salida/alineado.apk
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/firma.jks" --ks-pass env:KEY_STORE_PASSWORD \
+            --ks-key-alias "$ALIAS" --key-pass env:KEY_PASSWORD \
+            --out "salida/Fbook-$VERSION.apk" salida/alineado.apk
+          rm salida/alineado.apk
+          cp "salida/Fbook-$VERSION.apk" salida/Fbook.apk
+          "$BT/apksigner" verify salida/Fbook.apk
+          ls -la salida
+
+      # Enlace fijo: https://github.com/ByronR199716/Fbook/releases/latest/download/Fbook.apk
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Fbook ${{ env.VERSION }}
+          body: "APK compilado automáticamente."
+          files: salida/*.apk

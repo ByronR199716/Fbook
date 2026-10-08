@@ -18,7 +18,7 @@ extensions.configure<ApplicationExtension> {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.ycngmn.nobook"
+        applicationId = "ec.fbook.app"
         minSdk = 23
         targetSdk = 36
         versionCode = 11
